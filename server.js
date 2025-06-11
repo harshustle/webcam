@@ -1,5 +1,5 @@
 // server.js - WebSocket Signaling Server
-const WebSocket = require('ws');
+const socket = new WebSocket("wss://webcam-p88l.onrender.com");
 const wss = new WebSocket.Server({ port: 3000 });
 
 let clients = [];
