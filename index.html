@@ -1,35 +1,85 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>WebRTC Live Stream</title>
+  <meta charset="UTF-8" />
+  <title>WebRTC Live Video Call</title>
   <style>
-    body { background: #111; color: #fff; text-align: center; padding: 2rem; font-family: sans-serif; }
-    video { width: 70%; border: 3px solid #00ffff; border-radius: 12px; margin: 1rem 0; }
-    button { padding: 10px 20px; font-size: 1rem; margin: 0.5rem; cursor: pointer; }
-    #localVideo { display: none; }
+    body {
+      background-color: #0e0e0e;
+      color: #f0f0f0;
+      font-family: 'Segoe UI', sans-serif;
+      text-align: center;
+      padding: 2rem;
+    }
+    h1 {
+      color: #00ffff;
+    }
+    video {
+      width: 90%;
+      max-width: 500px;
+      border: 3px solid #00ffff;
+      border-radius: 12px;
+      margin: 1rem 0;
+    }
+    button {
+      background-color: #00ffff;
+      color: #000;
+      padding: 10px 20px;
+      font-size: 1rem;
+      margin: 0.5rem;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: 0.3s;
+    }
+    button:hover {
+      background-color: #00cccc;
+    }
+    .video-section {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1rem;
+    }
   </style>
 </head>
 <body onload="startCamera(); setTimeout(startConnection, 1000)">
   <h1>📡 WebRTC Camera Stream</h1>
-  <video id="localVideo" autoplay playsinline muted></video>
-  <video id="remoteVideo" autoplay playsinline></video>
-  <br>
-  <button onclick="startCamera()">Start Camera</button>
-  <button onclick="startConnection()">Start Stream</button>
+  <p>This will allow you to stream your video to another device in real-time.</p>
+
+  <div class="video-section">
+    <h2>🎥 Your Camera</h2>
+    <video id="localVideo" autoplay playsinline muted></video>
+
+    <h2>👀 Partner's Camera</h2>
+    <video id="remoteVideo" autoplay playsinline></video>
+
+    <button onclick="startCamera()">Start My Camera</button>
+    <button onclick="startConnection()">Connect to Partner</button>
+  </div>
 
   <script>
     const localVideo = document.getElementById("localVideo");
     const remoteVideo = document.getElementById("remoteVideo");
     let localStream;
     let peerConnection;
+
+    // Replace with your actual WebSocket server URL
     const socket = new WebSocket("wss://webcam-p88l.onrender.com");
 
-
-    const config = { iceServers: [{ urls: "stun:stun.l.google.com:19302" }] };
+    const config = {
+      iceServers: [{ urls: "stun:stun.l.google.com:19302" }]
+    };
 
     async function startCamera() {
-      localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-      localVideo.srcObject = localStream;
+      try {
+        localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+        localVideo.srcObject = localStream;
+        console.log("✅ Camera started");
+      } catch (error) {
+        alert("Camera or microphone access denied or not available.");
+        console.error("❌ Error accessing media:", error);
+      }
     }
 
     function startConnection() {
@@ -38,10 +88,13 @@
 
       peerConnection.ontrack = event => {
         remoteVideo.srcObject = event.streams[0];
+        console.log("📡 Receiving remote stream");
       };
 
       peerConnection.onicecandidate = event => {
-        if (event.candidate) socket.send(JSON.stringify({ type: "ice", candidate: event.candidate }));
+        if (event.candidate) {
+          socket.send(JSON.stringify({ type: "ice", candidate: event.candidate }));
+        }
       };
 
       socket.onmessage = async (event) => {
@@ -59,15 +112,16 @@
         }
 
         if (data.type === "ice") {
-          if (data.candidate) peerConnection.addIceCandidate(new RTCIceCandidate(data.candidate));
+          if (data.candidate) {
+            await peerConnection.addIceCandidate(new RTCIceCandidate(data.candidate));
+          }
         }
       };
 
-      peerConnection.createOffer()
-        .then(offer => {
-          peerConnection.setLocalDescription(offer);
-          socket.send(JSON.stringify({ type: "offer", offer }));
-        });
+      peerConnection.createOffer().then(offer => {
+        peerConnection.setLocalDescription(offer);
+        socket.send(JSON.stringify({ type: "offer", offer }));
+      });
     }
   </script>
 </body>
