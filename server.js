@@ -1,5 +1,5 @@
 // server.js - WebSocket Signaling Server
-const WebSocket = require('ws');
+import WebSocket from 'ws';
 const PORT = process.env.PORT || 3000;
 const wss = new WebSocket.Server({ port: PORT });
 
@@ -22,4 +22,4 @@ wss.on('connection', ws => {
   });
 });
 
-console.log("WebSocket signaling server running on ws://localhost:3000");
+console.log("WebSocket signaling server running on ${PORT}");
