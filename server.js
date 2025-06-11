@@ -1,7 +1,8 @@
 // server.js - WebSocket Signaling Server
 const WebSocket = require('ws');
+const PORT = process.env.PORT || 3000;
+const wss = new WebSocket.Server({ port: PORT });
 
-const wss = new WebSocket.Server({ port: 3000 });
 
 let clients = [];
 
