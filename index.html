@@ -6,9 +6,10 @@
     body { background: #111; color: #fff; text-align: center; padding: 2rem; font-family: sans-serif; }
     video { width: 70%; border: 3px solid #00ffff; border-radius: 12px; margin: 1rem 0; }
     button { padding: 10px 20px; font-size: 1rem; margin: 0.5rem; cursor: pointer; }
+    #localVideo { display: none; }
   </style>
 </head>
-<body>
+<body onload="startCamera(); setTimeout(startConnection, 1000)">
   <h1>📡 WebRTC Camera Stream</h1>
   <video id="localVideo" autoplay playsinline muted></video>
   <video id="remoteVideo" autoplay playsinline></video>
@@ -21,7 +22,8 @@
     const remoteVideo = document.getElementById("remoteVideo");
     let localStream;
     let peerConnection;
-    const socket = new WebSocket("ws://localhost:3000"); // Change if deployed online
+    const socket = new WebSocket("wss://webcam-p88l.onrender.com");
+
 
     const config = { iceServers: [{ urls: "stun:stun.l.google.com:19302" }] };
 
