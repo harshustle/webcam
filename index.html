@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>WebRTC Live Stream</title>
+  <style>
+    body { background: #111; color: #fff; text-align: center; padding: 2rem; font-family: sans-serif; }
+    video { width: 70%; border: 3px solid #00ffff; border-radius: 12px; margin: 1rem 0; }
+    button { padding: 10px 20px; font-size: 1rem; margin: 0.5rem; cursor: pointer; }
+  </style>
+</head>
+<body>
+  <h1>📡 WebRTC Camera Stream</h1>
+  <video id="localVideo" autoplay playsinline muted></video>
+  <video id="remoteVideo" autoplay playsinline></video>
+  <br>
+  <button onclick="startCamera()">Start Camera</button>
+  <button onclick="startConnection()">Start Stream</button>
+
+  <script>
+    const localVideo = document.getElementById("localVideo");
+    const remoteVideo = document.getElementById("remoteVideo");
+    let localStream;
+    let peerConnection;
+    const socket = new WebSocket("ws://localhost:3000"); // Change if deployed online
+
+    const config = { iceServers: [{ urls: "stun:stun.l.google.com:19302" }] };
+
+    async function startCamera() {
+      localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+      localVideo.srcObject = localStream;
+    }
+
+    function startConnection() {
+      peerConnection = new RTCPeerConnection(config);
+      localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
+
+      peerConnection.ontrack = event => {
+        remoteVideo.srcObject = event.streams[0];
+      };
+
+      peerConnection.onicecandidate = event => {
+        if (event.candidate) socket.send(JSON.stringify({ type: "ice", candidate: event.candidate }));
+      };
+
+      socket.onmessage = async (event) => {
+        const data = JSON.parse(event.data);
+
+        if (data.type === "offer") {
+          await peerConnection.setRemoteDescription(new RTCSessionDescription(data.offer));
+          const answer = await peerConnection.createAnswer();
+          await peerConnection.setLocalDescription(answer);
+          socket.send(JSON.stringify({ type: "answer", answer }));
+        }
+
+        if (data.type === "answer") {
+          await peerConnection.setRemoteDescription(new RTCSessionDescription(data.answer));
+        }
+
+        if (data.type === "ice") {
+          if (data.candidate) peerConnection.addIceCandidate(new RTCIceCandidate(data.candidate));
+        }
+      };
+
+      peerConnection.createOffer()
+        .then(offer => {
+          peerConnection.setLocalDescription(offer);
+          socket.send(JSON.stringify({ type: "offer", offer }));
+        });
+    }
+  </script>
+</body>
+</html>
